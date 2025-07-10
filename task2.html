@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scientific Calculator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: radial-gradient(circle at top right, #0f172a, #1e293b);
+      --text: #f8fafc;
+      --btn: rgba(255, 255, 255, 0.08);
+      --accent: #38bdf8;
+      --glass: rgba(255, 255, 255, 0.05);
+    }
+
+    body.light {
+      --bg: radial-gradient(circle at top left, #dbeafe, #f0f4f8);
+      --text: #1e293b;
+      --btn: rgba(0, 0, 0, 0.05);
+      --accent: #3b82f6;
+      --glass: rgba(255, 255, 255, 0.4);
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      background-attachment: fixed;
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      transition: background 0.3s ease;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 430px;
+      padding: 20px;
+    }
+
+    .calculator {
+      backdrop-filter: blur(16px);
+      background: var(--glass);
+      border-radius: 24px 24px 20px 20px;
+      padding: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .display {
+      background: transparent;
+      color: var(--text);
+      font-size: 2rem;
+      padding: 15px;
+      border: 2px solid var(--accent);
+      border-radius: 12px;
+      min-height: 60px;
+      text-align: right;
+      word-wrap: break-word;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 15px;
+      font-size: 1.05rem;
+      background: var(--btn);
+      color: var(--text);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    button:hover {
+      background: var(--accent);
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    .clear { background: #ef4444; }
+    .clear:hover { background: #dc2626; color: white; }
+    .equal { background: #22c55e; }
+    .equal:hover { background: #16a34a; color: white; }
+    .operator { background: #f59e0b; }
+    .operator:hover { background: #d97706; color: white; }
+
+    .theme-toggle, .history-toggle {
+      text-align: center;
+      margin-top: 15px;
+      cursor: pointer;
+      color: var(--accent);
+      font-size: 0.9rem;
+    }
+
+    .history {
+      background: rgba(0,0,0,0.1);
+      border-radius: 12px;
+      max-height: 160px;
+      overflow-y: auto;
+      margin-top: 12px;
+      padding: 10px;
+      font-size: 0.85rem;
+    }
+
+    .history-entry {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 4px 0;
+    }
+
+    .sci {
+      display: none;
+      transition: all 0.3s ease;
+    }
+
+    @media (max-width: 500px) {
+      .buttons {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      button {
+        font-size: 0.95rem;
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="calculator">
+      <div id="display" class="display">0</div>
+      <div class="buttons">
+        <button class="clear" onclick="clearDisplay()">C</button>
+        <button onclick="backspace()">⌫</button>
+        <button onclick="append('π')">π</button>
+        <button onclick="append('e')">e</button>
+        <button onclick="append('/')">÷</button>
+
+        <button onclick="append('7')">7</button>
+        <button onclick="append('8')">8</button>
+        <button onclick="append('9')">9</button>
+        <button onclick="append('^')">^</button>
+        <button class="operator" onclick="append('*')">×</button>
+
+        <button onclick="append('4')">4</button>
+        <button onclick="append('5')">5</button>
+        <button onclick="append('6')">6</button>
+        <button onclick="append('-')">−</button>
+        <button onclick="sqrt()">√</button>
+
+        <button onclick="append('1')">1</button>
+        <button onclick="append('2')">2</button>
+        <button onclick="append('3')">3</button>
+        <button onclick="append('+')">+</button>
+        <button onclick="square()">x²</button>
+
+        <button onclick="append('0')">0</button>
+        <button onclick="append('.')">.</button>
+        <button onclick="append('(')">(</button>
+        <button onclick="append(')')">)</button>
+        <button class="equal" onclick="calculate()">=</button>
+
+        <button onclick="toggleScientific()">🧪 Sci</button>
+        <button class="sci" onclick="append('sin(')">sin</button>
+        <button class="sci" onclick="append('cos(')">cos</button>
+        <button class="sci" onclick="append('tan(')">tan</button>
+        <button class="sci" onclick="append('log(')">log</button>
+        <button class="sci" onclick="append('ln(')">ln</button>
+      </div>
+
+      <div class="theme-toggle" onclick="toggleTheme()">🌗 Toggle Theme</div>
+      <div class="history-toggle" onclick="toggleHistory()">📜 Show/Hide History</div>
+      <div id="history" class="history" style="display:none;"></div>
+    </div>
+  </div>
+  <script>
+    const display = document.getElementById("display");
+    const historyDiv = document.getElementById("history");
+    let expression = "";
+
+    function append(value) {
+      if (display.textContent === "0" || display.textContent === "Error") {
+        expression = value;
+      } else {
+        expression += value;
+      }
+      display.textContent = expression;
+    }
+
+    function clearDisplay() {
+      expression = "";
+      display.textContent = "0";
+    }
+
+    function backspace() {
+      expression = expression.slice(0, -1);
+      display.textContent = expression || "0";
+    }
+
+    function square() {
+      expression += "**2";
+      display.textContent = expression;
+    }
+
+    function sqrt() {
+      expression += "Math.sqrt(";
+      display.textContent = expression;
+    }
+
+    function calculate() {
+      try {
+        const original = expression;
+        let result = expression
+          .replace(/π/g, "Math.PI")
+          .replace(/e/g, "Math.E")
+          .replace(/sin/g, "Math.sin")
+          .replace(/cos/g, "Math.cos")
+          .replace(/tan/g, "Math.tan")
+          .replace(/log/g, "Math.log10")
+          .replace(/ln/g, "Math.log")
+          .replace(/\^/g, "**");
+
+        const value = Function('"use strict"; return (' + result + ')')();
+        if (!isFinite(value)) throw "Error";
+
+        addToHistory(original, value);
+        display.textContent = value;
+        expression = value.toString();
+      } catch {
+        display.textContent = "Error";
+        expression = "";
+      }
+    }
+
+    function addToHistory(exp, result) {
+      const entry = document.createElement("div");
+      entry.className = "history-entry";
+      entry.textContent = `${exp} = ${result}`;
+      historyDiv.prepend(entry);
+    }
+
+    function toggleHistory() {
+      historyDiv.style.display = historyDiv.style.display === "none" ? "block" : "none";
+    }
+
+    function toggleTheme() {
+      document.body.classList.toggle("light");
+      localStorage.setItem("theme", document.body.classList.contains("light") ? "light" : "dark");
+    }
+
+    function toggleScientific() {
+      document.querySelectorAll(".sci").forEach(btn => {
+        btn.style.display = btn.style.display === "none" ? "inline-block" : "none";
+      });
+    }
+
+    window.onload = () => {
+      if (localStorage.getItem("theme") === "light") {
+        document.body.classList.add("light");
+      }
+    };
+
+    document.addEventListener("keydown", (e) => {
+      const key = e.key;
+      if (!isNaN(key) || "+-*/().".includes(key)) append(key);
+      else if (key === "Enter") calculate();
+      else if (key === "Backspace") backspace();
+      else if (key === "^") append("^");
+      else if (key === "c") clearDisplay();
+      else if (key === "s") append("sin(");
+      else if (key === "l") append("log(");
+    });
+  </script>
+</body>
+</html>
